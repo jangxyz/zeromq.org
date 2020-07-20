@@ -27,31 +27,41 @@ socket and how a worker pulls information from the socket.
 
 ```js
 // producer.js
-var zmq = require("zeromq"),
-  sock = zmq.socket("push");
+const zmq = require("zeromq")
 
-sock.bindSync("tcp://127.0.0.1:3000");
-console.log("Producer bound to port 3000");
+async function run() {
+  const sock = new zmq.Push
 
-setInterval(function() {
-  console.log("sending work");
-  sock.send("some work");
-}, 500);
+  await sock.bind("tcp://127.0.0.1:3000")
+  console.log("Producer bound to port 3000")
+
+  while (true) {
+    await sock.send("some work")
+    await new Promise(resolve => setTimeout(resolve, 500))
+  }
+}
+
+run()
 ```
 
 **worker.js**
 
 ```js
 // worker.js
-var zmq = require("zeromq"),
-  sock = zmq.socket("pull");
+const zmq = require("zeromq")
 
-sock.connect("tcp://127.0.0.1:3000");
-console.log("Worker connected to port 3000");
+async function run() {
+  const sock = new zmq.Pull
 
-sock.on("message", function(msg) {
-  console.log("work: %s", msg.toString());
-});
+  sock.connect("tcp://127.0.0.1:3000")
+  console.log("Worker connected to port 3000")
+
+  for await (const [msg] of sock) {
+    console.log("work: %s", msg.toString())
+  }
+}
+
+run()
 ```
 
 ### Pub/Sub
@@ -59,39 +69,45 @@ sock.on("message", function(msg) {
 This example demonstrates using `zeromq` in a classic Pub/Sub,
 Publisher/Subscriber, application.
 
-**Publisher: pubber.js**
+**Publisher: publisher.js.js**
 
 ```js
-// pubber.js
-var zmq = require("zeromq"),
-  sock = zmq.socket("pub");
+// publisher.js.js
+const zmq = require("zeromq")
 
-sock.bindSync("tcp://127.0.0.1:3000");
-console.log("Publisher bound to port 3000");
+async function run() {
+  const sock = new zmq.Publisher
 
-setInterval(function() {
-  console.log("sending a multipart message envelope");
-  sock.send(["kitty cats", "meow!"]);
-}, 500);
+  await sock.bind("tcp://127.0.0.1:3000")
+  console.log("Publisher bound to port 3000")
+
+  while (true) {
+    console.log("sending a multipart message envelope")
+    await sock.send(["kitty cats", "meow!"])
+    await new Promise(resolve => setTimeout(resolve, 500))
+  }
+}
+
+run()
 ```
 
-**Subscriber: subber.js**
+**Subscriber: subscriber.js.js**
 
 ```js
-// subber.js
-var zmq = require("zeromq"),
-  sock = zmq.socket("sub");
+// subscriber.js.js
+const zmq = require("zeromq")
 
-sock.connect("tcp://127.0.0.1:3000");
-sock.subscribe("kitty cats");
-console.log("Subscriber connected to port 3000");
+async function run() {
+  const sock = new zmq.Subscriber
 
-sock.on("message", function(topic, message) {
-  console.log(
-    "received a message related to:",
-    topic,
-    "containing message:",
-    message
-  );
-});
+  sock.connect("tcp://127.0.0.1:3000")
+  sock.subscribe("kitty cats")
+  console.log("Subscriber connected to port 3000")
+
+  for await (const [topic, msg] of sock) {
+    console.log("received a message related to:", topic, "containing message:", msg)
+  }
+}
+
+run()
 ```
